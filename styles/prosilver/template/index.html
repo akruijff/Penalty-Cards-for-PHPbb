@@ -1,0 +1,55 @@
+<!-- INCLUDE overall_header.html -->
+
+<h2 class="solo">{PAGE_TITLE}</h2>
+
+<div class="pagination">
+	<!-- IF .pagination -->
+		<!-- INCLUDE pagination.html -->
+	<!-- ELSE -->
+		 {PAGE_NUMBER}
+	<!-- ENDIF -->
+</div>
+
+<div class="forumbg forumbg-table">
+	<div class="inner">
+
+	<table class="table1">
+	<thead><tr>
+		<th class="name" data-dfn="{L_RANK}{L_COMMA_SEPARATOR}{L_USERNAME}"><span class="rank-img">{L_RANK}</span>{L_USERNAME}</a></th>
+		<th class="card-type">{L_AKRUIJFF_PENALTY_CARDS_TYPE}</th>
+		<th class="card-duration">{L_AKRUIJFF_PENALTY_CARDS_DURATION}</th>
+		<th class="card-expiration-date">{L_AKRUIJFF_PENALTY_CARDS_EXPIRATION_DATE}</th>
+		<th class="card-reason">{L_AKRUIJFF_PENALTY_CARDS_REASON}</th>
+	</tr></thead>
+	<tbody>
+	<!-- BEGIN penalty_cards_row -->
+	<tr class="<!-- IF penalty_cards_row.S_ROW_COUNT is even -->bg1<!-- ELSE -->bg2<!-- ENDIF --><!-- IF penalty_cards_row.S_INACTIVE --> inactive<!-- ENDIF -->">
+		<td><span class="rank-img"><!-- IF memberrow.RANK_IMG -->{penalty_cards_row.RANK_IMG}<!-- ELSE -->{penalty_cards_row.RANK_TITLE}<!-- ENDIF --></span><a href="{penalty_cards_row.U_USER}">{penalty_cards_row.USERNAME_FULL}</a>&nbsp;</td>
+		<td class="card-type"><a href="{penalty_cards_row.U_POST}" class="{penalty_cards_row.CARD_CLASS}">{penalty_cards_row.CARD_TYPE}</a>&nbsp;</td>
+		<td class="card-duration"><a href="{penalty_cards_row.U_POST}">{penalty_cards_row.DURATION}</a>&nbsp;</td>
+		<td class="card-expiration-date"><a href="{penalty_cards_row.U_POST}">{penalty_cards_row.EXPIRATION_DATE}</a>&nbsp;</td>
+		<td class="card-reason"><a href="{penalty_cards_row.U_POST}">{penalty_cards_row.REASON}</a>&nbsp;</td>
+	</tr>
+	<!-- BEGINELSE -->
+	<tr class="bg1">
+		<td colspan="5">{L_NO_ENTRIES}</td>
+	</tr>
+	<!-- END penalty_cards_row -->
+	</tbody>
+	</table>
+
+	</div>
+</div>
+
+<div class="action-bar bar-bottom">
+	<div class="pagination">
+		<!-- IF .pagination -->
+			<!-- INCLUDE pagination.html -->
+		<!-- ELSE -->
+			 {PAGE_NUMBER}
+		<!-- ENDIF -->
+	</div>
+</div>
+
+<!-- INCLUDE overall_footer.html -->
+

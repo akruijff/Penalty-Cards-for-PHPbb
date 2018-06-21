@@ -1,0 +1,86 @@
+<!-- INCLUDE mcp_header.html -->
+
+<form method="post" id="mcp" action="{U_POST_ACTION}">
+
+	<h2>{L_MCP_AKRUIJFF_PENALTY_CARDS_FRONT_TITLE}</h2>
+	<div class="panel">
+		<div class="inner">
+
+		<div class="action-bar bar-top">
+			<div class="pagination">
+				<!-- IF .pagination -->
+					<!-- INCLUDE pagination.html -->
+				<!-- ELSE -->
+					 {PAGE_NUMBER}
+				<!-- ENDIF -->
+			</div>
+		</div>
+
+		<table class="table1 responcive">
+			<thead>
+				<tr>
+					<th class="name">{L_MARK}</th>
+					<th class="name">{L_USERNAME}</th>
+					<th class="name">{L_AKRUIJFF_PENALTY_CARDS_TYPE}</th>
+					<th class="name">{L_AKRUIJFF_PENALTY_CARDS_DURATION}</th>
+					<th class="name">{L_AKRUIJFF_PENALTY_CARDS_EXPIRATION_DATE}</th>
+					<th class="name">{L_MODERATOR}</th>
+					<th class="name">{L_AKRUIJFF_PENALTY_CARDS_ACTIONS}</th>
+				</tr>
+			</thead>
+
+			<tbody>
+			<!-- BEGIN penalty_cards_row -->
+				<tr class="<!-- IF penalty_cards_row.S_ROW_COUNT is even -->bg1<!-- ELSE -->bg2<!-- ENDIF -->">
+					<td class="name"><input type="checkbox" id="card_{penalty_cards_row.CARD_ID}" name="card_id_list[]" value="{penalty_cards_row.CARD_ID}" /></td>
+					<td class="name"><a href="{penalty_cards_row.U_PROFILE}">{penalty_cards_row.USERNAME}</a></td>
+					<td class="name {penalty_cards_row.CARD_CLASS}">{penalty_cards_row.CARD_TYPE}</td>
+					<td class="name">{penalty_cards_row.DURATION}</td>
+					<td class="name">{penalty_cards_row.EXPIRATION_DATE}</td>
+					<td class="name">{penalty_cards_row.MODERATOR}</td>
+					<td class="name">
+						<!-- IF penalty_cards_row.U_VIEW -->
+							<a href="{penalty_cards_row.U_VIEW}" title="{L_AKRUIJFF_PENALTY_CARDS_VIEW}" class="button button-icon-only">
+                                                                <i class="icon fa-eye fa-fw" aria-hidden="true"></i><span class="sr-only">{L_AKRUIJFF_PENALTY_CARDS_VIEW}</span>
+							</a>
+						<!-- ENDIF -->
+						<!-- IF penalty_cards_row.U_EDIT -->
+							<a href="{penalty_cards_row.U_EDIT}" title="{L_AKRUIJFF_PENALTY_CARDS_EDIT}" class="button button-icon-only">
+                                                                <i class="icon fa-pencil fa-fw" aria-hidden="true"></i><span class="sr-only">{L_AKRUIJFF_PENALTY_CARDS_EDIT}</span>
+							</a>
+						<!-- ENDIF -->
+						<!-- IF penalty_cards_row.U_DELETE -->
+							<a title="{L_AKRUIJFF_PENALTY_CARDS_DELETE}" class="button button-icon-only" onclick="document.getElementById('card_{penalty_cards_row.CARD_ID}').checked=true; document.getElementById('del_marked').click();">
+                                                                <i class="icon fa-times fa-fw" aria-hidden="true"></i><span class="sr-only">{L_AKRUIJFF_PENALTY_CARDS_DELETE}</span>
+							</a>
+						<!-- ENDIF -->
+					</td>
+				</tr>
+			<!-- BEGINELSE -->
+				<tr>
+					<td class="bg1" colspan="7" align="center"><span class="gen">{L_AKRUIJFF_PENALTY_CARDS_NO_ENTRIES}</span></td>
+				</tr>
+			<!-- END penalty_cards_row -->
+			</tbody>
+		</table>
+
+		<div class="action-bar bottom">
+			<div class="pagination">
+				<!-- IF .pagination -->
+					<!-- INCLUDE pagination.html -->
+				<!-- ELSE -->
+					 {PAGE_NUMBER}
+				<!-- ENDIF -->
+			</div>
+		</div>
+
+		<fieldset class="display-actions">
+			<input class="button1" type="submit" id="del_marked" name="action[del_marked]" value="{L_DELETE_MARKED}" />
+			{S_FORM_TOKEN}
+		</fieldset>
+
+		</div>
+	</div>
+</form>
+
+<!-- INCLUDE mcp_footer.html -->

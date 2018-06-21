@@ -1,0 +1,9 @@
+akruijff_penalty_cards_index:
+    path: /akruijff/penalty_cards
+    defaults: { _controller: akruijff.penalty_cards.controller:index }
+
+akruijff_penalty_cards_entry:
+    path: /akruijff/penalty_cards/{id}
+    defaults: { _controller: akruijff.penalty_cards.controller:card }
+    requirements:
+        id: \d+ 

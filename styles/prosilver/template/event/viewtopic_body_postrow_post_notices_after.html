@@ -1,0 +1,6 @@
+<!-- IF postrow.CARD_MESSAGE or postrow.CARD_REASON -->
+	<div class="notice">
+		{postrow.CARD_MESSAGE}
+		<!-- IF postrow.CARD_REASON --><br /><strong>{L_REASON}{L_COLON}</strong> <em>{postrow.CARD_REASON}</em><!-- ENDIF -->
+	</div>
+<!-- ENDIF -->
