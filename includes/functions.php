@@ -40,13 +40,14 @@ function can_issue_red($event) {
 }
 
 function is_card_issued($post_id) {
-	$row = fetch_post_row($post_id);
-	return !empty($row['card_id']);
-}
-
-function delete_sessions($card) {
 	global $db;
-	$db->sql_query('DELETE FROM ' . SESSIONS_TABLE . ' WHERE session_user_id = ' . $card['user_id']);
+	$sql = 'SELECT c.card_id
+		FROM ' . PENALTY_CARDS_TABLE . " c
+		WHERE c.card_post_id = $post_id";
+	$result = $db->sql_query($sql);
+	$card_id = $db->sql_fetchfield('card_id');
+	$db->sql_freeresult($result);
+	return !empty($card_id);
 }
 
 function get_card_class($ban_id) {
@@ -143,6 +144,7 @@ function fetch_username($user_id) {
 	return $username;
 }
 
+/*
 function fetch_active_card_count() {
 	global $db;
 	$sql = 'SELECT COUNT(*) AS card_count
@@ -153,12 +155,7 @@ function fetch_active_card_count() {
 	$db->sql_freeresult($result);
 	return $count;
 }
-
-function fetch_card_count($user_id) {
-	$rows = fetch_post_rows(array($user_id));
-	return !empty($rows[$user_id]['cards']) ?  $rows[$user_id]['cards'] : 0;
-
-}
+*/
 
 function fetch_post_rows($post_list) {
 	global $db;
@@ -177,6 +174,7 @@ function fetch_post_rows($post_list) {
 	return $cards;
 }
 
+/*
 function fetch_post_row($post_id) {
 	global $db;
 	$sql = 'SELECT u.*, p.*, c.*
@@ -188,6 +186,20 @@ function fetch_post_row($post_id) {
 	$row = $db->sql_fetchrow($result);
 	$db->sql_freeresult($result);
 	return $row;
+}
+
+function fetch_card_count($user_id) {
+	$rows = fetch_post_rows(array($user_id));
+	return !empty($rows[$user_id]['cards']) ?  $rows[$user_id]['cards'] : 0;
+
+}
+
+function delete_cards($list) {
+	if (empty($list))
+		return;
+	$sql = 'DELETE FROM ' . PENALTY_CARDS_TABLE . '
+		WHERE card_id IN (' . array_to_string($list) . ')';
+	$db->sql_query($sql);
 }
 
 function fetch_cards($start, $limit) {
@@ -206,8 +218,46 @@ function fetch_cards($start, $limit) {
 	return $arr;
 }
 
-function convert_cards_result_to_array($result) {
+/*
+function fetch_users_for_posts($post_list) {
 	global $db;
+	$sql = 'SELECT u.*
+		FROM ' . POSTS_TABLE . ' p, ' . USERS_TABLE . ' u
+		WHERE u.user_id = p.poster_id
+			AND p.post_id IN (' . array_to_string($post_list) . ')';
+	$result = $db->sql_query($sql);
+	$arr = convert_result_to_matrix($result);
+	$db->sql_freeresult($result);
+	return $arr;
+}
+
+function convert_result_to_matrix($result) {
+	global $db;
+	$arr = array();
+	$i = 0;
+	while($row = $db->sql_fetchrow($result)) {
+		$arr[$i] = $row;
+		++$i;
+	}
+	return $arr;
+}
+
+function fetch_cards_for_users($user_list) {
+	global $db;
+	$sql = 'SELECT u.*, p.*, c.*
+		FROM ' . POSTS_TABLE . ' p, ' . USERS_TABLE . ' u, ' . PENALTY_CARDS_TABLE . ' c
+		WHERE u.user_id IN (' . array_to_string($user_list) . ')
+			AND p.post_id = c.card_post_id
+			AND c.user_id = c.card_mod_id
+		ORDER BY c.card_start ASC';
+	$result = $db->sql_query($sql);
+	$arr = convert_cards_result_to_array($result);
+	$arr = supplement_cards($arr);
+	$db->sql_freeresult($result);
+	return $arr;
+}
+
+function convert_cards_result_to_array($result) {
 	$arr = array();
 	$i = 0;
 	$current = time();
@@ -238,6 +288,7 @@ function insert_card($card) {
 	$arr = array(
 		'card_ban_id' => !empty($card['ban_id']) ? $card['ban_id'] : NULL,
 		'card_post_id' => $card['post_id'],
+		'card_user_id' => $card['user_id'],
 		'card_mod_id' => $card['mod_id'],
 		'card_start' => $card['start'],
 		'card_end' => $card['card_duration'] != 0 ? $card['end'] : 0,
@@ -273,16 +324,9 @@ function ban_user($card) {
 	delete_sessions($card);
 }
 
-function insert_ban($card) {
+function delete_sessions($card) {
 	global $db;
-	$arr = array(
-		'ban_userid' => $card['user_id'],
-		'ban_start' => $card['start'],
-		'ban_end' => $card['end'],
-		'ban_reason' => $card['reason'],
-		'ban_give_reason' => $card['reason_shown'],
-	);
-	$db->sql_query('INSERT INTO ' . BANLIST_TABLE . ' ' . $db->sql_build_array('INSERT', $arr));
+	$db->sql_query('DELETE FROM ' . SESSIONS_TABLE . ' WHERE session_user_id = ' . $card['user_id']);
 }
 
 function card_to_template_vars($row) {
@@ -303,3 +347,4 @@ function card_to_template_vars($row) {
 		'EXPIRATION_DATE' => $row['card_end'] == 0 ? $user->lang('AKRUIJFF_PENALTY_CARDS_NEVER') : $user->format_date($row['card_end']),
 	);
 }
+*/

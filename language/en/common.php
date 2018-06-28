@@ -25,7 +25,7 @@ $lang = array_merge($lang, array(
 	'AKRUIJFF_PENALTY_CARDS_YELLOW_CARD'	=> 'Yellow card',
 	'AKRUIJFF_PENALTY_CARDS_RED_CARD'		=> 'Red card',
 
-	'CARD_ISSUED' => array(
+	'AKRUIJFF_PENALTY_CARDS_ISSUED' => array(
 		1 => '%4$s issued for %1$d day until %3$s',
 		2 => '%4$s issued for %1$d days until %3$s',
 	),
@@ -42,7 +42,7 @@ $lang = array_merge($lang, array(
 
 	'AKRUIJFF_PENALTY_CARDS_DURATION_VALUE'		=> array(
 		0 => 'Permanent',
-		1 => '%s day',
-		2 => '%s days',
+		1 => '%d day',
+		2 => '%d days',
 	),
 ));

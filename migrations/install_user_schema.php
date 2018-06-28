@@ -27,6 +27,7 @@ class install_user_schema extends \phpbb\db\migration\migration {
 						'card_id' => array('UINT:10', NULL, 'auto_increment'),
 						'card_ban_id' => array('UINT:10', NULL),
 						'card_post_id' => array('UINT:10', NULL),
+						'card_user_id' => array('UINT:10', NULL),
 						'card_mod_id' => array('UINT:10', NULL),
 						'card_start' => array('UINT:11', NULL),
 						'card_end' => array('UINT:11', NULL),
@@ -34,6 +35,13 @@ class install_user_schema extends \phpbb\db\migration\migration {
 						'card_reason_shown' => array('VCHAR:255', ''),
 					),
 					'PRIMARY_KEY' => 'card_id',
+					'KEYS' => array (
+						'post_index' => array('UNIQUE', 'post_id'),
+						'user_index' => array('INDEX', 'user_id'),
+						'mod_index' => array('INDEX', 'mod_id'),
+						'start_index' => array('INDEX', 'card_start'),
+						'end_index' => array('INDEX', 'card_end'),
+					),
 				),
 			),
 		);

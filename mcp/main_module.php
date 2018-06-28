@@ -89,13 +89,18 @@ class main_module {
 
 	private function process_front_form($id, $action) {
 		global $request, $db;
-		if ($action = 'del_marked') {
-			$list = $request->variable('card_id_list', array(0));
-			$sql = 'DELETE FROM ' . PENALTY_CARDS_TABLE . '
-				WHERE card_id IN (' . array_to_string($list) . ')';
-			$db->sql_query($sql);
-		}
+		if ($action = 'del_marked')
+			$this->delete_cards($request->variable('card_id_list', array(0)));
 		$this->show_front($id);
+	}
+
+	private function delete_cards($card_list) {
+		global $db;
+		if (empty($card_list))
+			return;
+		$sql = 'DELETE FROM ' . PENALTY_CARDS_TABLE . '
+			WHERE card_id IN (' . array_to_string($card_list) . ')';
+		$db->sql_query($sql);
 	}
 
 	private function show_front($id) {
@@ -106,9 +111,20 @@ class main_module {
 	private function assign_front($id) {
 		global $request;
 		$start = $request->variable('start', 0);
-		$size = fetch_active_card_count();
+		$size = $this->fetch_card_count();
 		$this->assign_pagination($start, $size);
 		$this->assign_page_content($id, $start);
+	}
+
+	private function fetch_card_count() {
+		global $db;
+		$sql = 'SELECT COUNT(*) AS card_count
+			FROM ' . PENALTY_CARDS_TABLE . ' c
+			WHERE c.card_end = 0 OR c.card_end > ' . time();
+		$result = $db->sql_query($sql);
+		$count = $db->sql_fetchfield('card_count');
+		$db->sql_freeresult($result);
+		return $count;
 	}
 
 	private function assign_pagination($start, $size) {
@@ -120,23 +136,56 @@ class main_module {
 
 	private function assign_page_content($id, $start) {
 		global $config;
-		$arr = fetch_cards($start, $config['topics_per_page']);
+		$arr = $this->fetch_cards($start, $config['topics_per_page']);
 		foreach($arr as $row)
 			$this->assign_front_block($id, $row);
 	}
 
+	private function fetch_cards($start, $limit) {
+		global $db;
+		$sql = 'SELECT c.card_id, c.card_ban_id, c.card_start, c.card_end, u.user_id, u.username, u.user_colour, m.user_id as mod_id, m.username as mod_username, m.user_colour as mod_colour
+			FROM ' . PENALTY_CARDS_TABLE . ' c, ' . USERS_TABLE . ' u, ' . USERS_TABLE . " m
+			WHERE c.card_user_id = u.user_id
+				AND c.card_mod_id = m.user_id
+			ORDER BY c.card_start DESC
+			LIMIT $start, $limit";
+		$result = $db->sql_query($sql);
+
+		global $phpbb_root_path, $phpEx;
+		if (!function_exists('phpbb_get_user_rank'))
+			include("${phpbb_root_path}includes/functions_display.$phpEx");
+
+		$arr = array();
+		$current = time();
+		while($row = $db->sql_fetchrow($result)) {
+			$row['INACTIVE'] = $row['card_end'] > $current;
+			$arr[$i] = $row;
+			++$i;
+		}
+
+		$db->sql_freeresult($result);
+		return $arr;
+	}
+
 	private function assign_front_block($id, $row) {
 		global $phpbb_root_path, $phpEx, $template, $user;
-		$arr = card_to_template_vars($row);
-		$arr = array_merge($arr, array(
-			'MOD_USERNAME' => $row['mod_username'],
-			'MOD_ID' => $row['mod_id'],
-
-			'U_PROFILE' => append_sid("{$phpbb_root_path}memberlist.$phpEx", 'mode=viewprofile&amp;u=' . $row['card_user_id']),
+		$arr = array(
+			'U_PROFILE' => append_sid("{$phpbb_root_path}memberlist.$phpEx", 'mode=viewprofile&amp;u=' . $row['user_id']),
+			'U_MOD_PROFILE' => append_sid("{$phpbb_root_path}memberlist.$phpEx", 'mode=viewprofile&amp;u=' . $row['mod_id']),
 			'U_VIEW' => append_sid("{$phpbb_root_path}mcp.$phpEx", "i=$id&amp;mode=view&amp;c=" . $row['card_id']),
 			'U_EDIT' => append_sid("{$phpbb_root_path}mcp.$phpEx", "i=$id&amp;mode=edit&amp;c=" . $row['card_id']),
 			'U_DELETE' => append_sid("{$phpbb_root_path}mcp.$phpEx", "i=$id&amp;mode=delete&amp;c=" . $row['card_id']),
-		));
+#			'USERNAME_FULL' => get_username_string('full', $row['user_id'], $row['username'], $row['user_colour']),
+			'USERNAME' => get_username_string('username', $row['user_id'], $row['username'], $row['user_colour']),
+			'CARD_ID' => $row['card_id'],
+			'CARD_CLASS' => get_card_class($row['card_ban_id']),
+			'CARD_TYPE' => get_card_text($row['card_ban_id']),
+			'DURATION' => $row['card_end'] == 0 ? $user->lang('AKRUIJFF_PENALTY_CARDS_DURATION_PERMANENT') : $user->lang('AKRUIJFF_PENALTY_CARDS_DURATION_VALUE', ($row['card_end'] - $row['card_start']) / DAY),
+			'EXPIRATION_DATE' => $row['card_end'] == 0 ? $user->lang('AKRUIJFF_PENALTY_CARDS_NEVER') : $user->format_date($row['card_end']),
+			'MOD_USERNAME' => $row['mod_username'],
+			'MOD_USERNAME' => get_username_string('mod_username', $row['mod_id'], $row['mod_username'], $row['mod_colour']),
+
+		);
 		$template->assign_block_vars('penalty_cards_row', $arr);
 	}
 
@@ -161,7 +210,7 @@ class main_module {
 			include($phpbb_root_path . 'includes/functions_display.' . $phpEx);
 
 		$post_id = request_number_variable('p');
-		$post_row = fetch_post_row($post_id);
+		$post_row = $this->fetch_post_row($post_id);
 		$user_rank_data = phpbb_get_user_rank($post_row, $post_row['user_posts']);
 
 		return array(
@@ -177,7 +226,7 @@ class main_module {
 			'joined' => $user->format_date($post_row['user_regdate']),
 			'posts' => $post_row['user_posts'] ? $post_row['user_posts'] : 0,
 			'warnings' => $post_row['user_warnings'] ? $post_row['user_warnings'] : 0,
-			'cards' => !empty($post_row['user_id']) ? fetch_card_count($post_row['user_id']) : '0',
+			'cards' => !empty($post_row['user_id']) ? $this->fetch_card_count($post_row['user_id']) : '0',
 
 			'post_id' => $post_id,
 			'post' => $this->get_post($post_row),
@@ -201,6 +250,19 @@ class main_module {
 		);
 	}
 
+	private function fetch_post_row($post_id) {
+		global $db;
+		$sql = 'SELECT u.user_id, u.user_ip, u.user_type, u.username, u.user_colour, u.user_regdate, u.user_posts, u.user_warnings, p.post_time
+			FROM (' . POSTS_TABLE . ' p, ' . USERS_TABLE . ' u)
+			LEFT JOIN ' . PENALTY_CARDS_TABLE . ' c ON c.card_post_id = p.post_id
+			WHERE p.post_id = ' . $post_id . '
+				AND u.user_id = p.poster_id';
+		$result = $db->sql_query($sql);
+		$row = $db->sql_fetchrow($result);
+		$db->sql_freeresult($result);
+		return $row;
+	}
+
 	private function get_post($row) {
 		$parse_flags = OPTION_FLAG_SMILIES | ($row['bbcode_bitfield'] ? OPTION_FLAG_BBCODE : 0);
 		return generate_text_for_display($row['post_text'], $row['bbcode_uid'], $row['bbcode_bitfield'], $parse_flags, true);
@@ -209,9 +271,11 @@ class main_module {
 	private function request_duration() {
 		global $request;
 		$duration = $request->variable('duration', '');
-		return is_numeric($duration) ? $duration
-			: $duration == 'permanent' ? 0
-			: $request->variable('duration_specification', '');
+		if (is_numeric($duration))
+			return $duration;
+		if ($duration = 'permanent')
+			return 0;
+		return $request->variable('duration_specification', '');
 	}
 
 	private function check_card($card) {
@@ -248,22 +312,95 @@ class main_module {
 
 	private function register_card($card) {
 		$card['start'] = time();
-		$card['end'] = $card['start'] + $card['duration'] * DAY;
+		$card['end'] = $card['duration'] == 0 ? 0 : $card['start'] + $card['duration'] * DAY;
 		if ($card['card_type'] == RED_CARD && $card['user_type'] == USER_NORMAL) {
 			$card = $this->register_ban($card);
 			$card['card_type'] = 'yellow';
 		} else
 			$this->notify_user_of_yellow_card($card);
-		insert_card($card);
+		$this->insert_card($card);
 		$this->log_card($card);
 	}
 
 	private function register_ban($card) {
-		clean_ban_list();
-		ban_user($card);
-		$ban_row = fetch_ban_row($card['user_id'], $card['end']);
+		$this->clean_ban_list();
+		$this->ban_user($card);
+		$ban_row = $this->fetch_ban_id($card['user_id'], $card['end']);
 		$card['ban_id'] = $ban_row['ban_id'];
 		return $card;
+	}
+
+	private function clean_ban_list() {
+		global $db, $cache;
+		$sql = 'DELETE FROM ' . BANLIST_TABLE . '
+			WHERE ban_end < ' . time() . '
+				AND ban_end <> 0';
+		$db->sql_query($sql);
+		$cache->destroy('sql', BANLIST_TABLE);
+	}
+
+	private function ban_user($card) {
+		$this->insert_ban($card);
+		$this->delete_sessions($card);
+	}
+
+	private function delete_sessions($card) {
+		global $db;
+		$db->sql_query('DELETE FROM ' . SESSIONS_TABLE . ' WHERE session_user_id = ' . $card['user_id']);
+	}
+
+	private function fetch_ban_id($user_id, $end) {
+		global $db;
+		$sql = 'SELECT ban_id
+			FROM ' . BANLIST_TABLE . "
+			WHERE ban_userid =  $user_id 
+				AND ban_end = $end";
+		$result = $db->sql_query($sql);
+		$row = $db->sql_fetchrow($result);
+		$db->sql_freeresult($result);
+		return $row;
+	}
+
+	private function notify_user_of_yellow_card($card) {
+		global $phpbb_root_path, $phpEx;
+		$card['user_lan'] = 'en'; // $user_row['user_lan'];
+		$subject = translate_for_user('MCP_AKRUIJFF_PENALTY_CARDS_YELLOW_CARD_SUBJECT', $card);
+		$format = translate_for_user('MCP_AKRUIJFF_PENALTY_CARDS_YELLOW_CARD_MESSAGE', $card);
+		$url = generate_board_url() . '/viewtopic.' . $phpEx . '?p=' . $card['post_id'] . '#p' . $card['post_id'];
+		$message = sprintf($format, $url);
+		send_pm($subject, $message, array(
+			'to_id' => $card['user_id'],
+			'from_id' => $card['from_id'],
+			'from_ip' => $card['from_ip'],
+			'from_username' => $card['from_username'],
+		));
+	}
+
+	private function insert_ban($card) {
+		global $db;
+		$arr = array(
+			'ban_userid' => $card['user_id'],
+			'ban_start' => $card['start'],
+			'ban_end' => $card['end'],
+			'ban_reason' => $card['reason'],
+			'ban_give_reason' => $card['reason_shown'],
+		);
+		$db->sql_query('INSERT INTO ' . BANLIST_TABLE . ' ' . $db->sql_build_array('INSERT', $arr));
+	}
+
+	private function insert_card($card) {
+		global $db;
+		$arr = array(
+			'card_ban_id' => !empty($card['ban_id']) ? $card['ban_id'] : NULL,
+			'card_post_id' => $card['post_id'],
+			'card_user_id' => $card['user_id'],
+			'card_mod_id' => $card['mod_id'],
+			'card_start' => $card['start'],
+			'card_end' => $card['end'],
+			'card_reason' => $card['reason'],
+			'card_reason_shown' => $card['reason_shown'],
+		);
+		$db->sql_query('INSERT INTO ' . PENALTY_CARDS_TABLE . ' ' . $db->sql_build_array('INSERT', $arr));
 	}
 
 	private function log_card($card) {
@@ -284,21 +421,6 @@ class main_module {
 		$phpbb_log->add('user', $user_id, $user->ip, $operation . '_REASON', false, array(
 			'reportee_id' => $card['user_id'],
 			$card['username'], $card['duration'], $card['reason'],
-		));
-	}
-
-	private function notify_user_of_yellow_card($card) {
-		global $phpbb_root_path, $phpEx;
-		$card['user_lan'] = 'en'; // $user_row['user_lan'];
-		$subject = translate_for_user('MCP_AKRUIJFF_PENALTY_CARDS_YELLOW_CARD_SUBJECT', $card);
-		$format = translate_for_user('MCP_AKRUIJFF_PENALTY_CARDS_YELLOW_CARD_MESSAGE', $card);
-		$url = generate_board_url() . '/viewtopic.' . $phpEx . '?p=' . $card['post_id'] . '#p' . $card['post_id'];
-		$message = sprintf($format, $url);
-		send_pm($subject, $message, array(
-			'to_id' => $card['user_id'],
-			'from_id' => $card['from_id'],
-			'from_ip' => $card['from_ip'],
-			'from_username' => $card['from_username'],
 		));
 	}
 

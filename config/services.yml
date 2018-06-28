@@ -1,19 +1,19 @@
 services:
     akruijff.penalty_cards.controller:
-        class: akruijff\penalty_cards\controller\main
+        class: akruijff\penalty_cards\controller\board
         arguments:
-            - '@config'
             - '@controller.helper'
-            - '@template'
-            - '@user'
+
+    akruijff.penalty_cards.listener:
+        class: akruijff\penalty_cards\event\board_link
+        arguments:
+            - '@controller.helper'
+        tags:
+            - { name: event.listener }
 
     akruijff.penalty_cards.listener:
         class: akruijff\penalty_cards\event\main_listener
         arguments:
-            - '@auth'
             - '@controller.helper'
-            - '@template'
-            - '@user'
-            - '%core.php_ext%'
         tags:
             - { name: event.listener }

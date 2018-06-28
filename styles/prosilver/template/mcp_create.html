@@ -1,0 +1,98 @@
+<!-- INCLUDE mcp_header.html -->
+
+<form method="post" id="mcp" action="{U_POST_ACTION}">
+	<h2>{L_MCP_AKRUIJFF_PENALTY_CARDS_EDIT_TITLE}</h2>
+	<div class="panel">
+		<div class="inner">
+
+		<h3><!-- IF USER_COLOR --><span style="color: #{USER_COLOR}">{USERNAME}</span><!-- ELSE -->{USERNAME}<!-- ENDIF --></h3>
+		<div>
+			<div class="column1">
+				<!-- IF AVATAR_IMG --><div>{AVATAR_IMG}</div><!-- ENDIF -->
+			</div>
+
+			<div class="column2">
+				<dl class="details">
+					<!-- IF RANK_TITLE --><dt>{L_RANK}{L_COLON}</dt><dd>{RANK_TITLE}</dd><!-- ENDIF -->
+					<!-- IF RANK_IMG --><dt><!-- IF RANK_TITLE -->&nbsp;<!-- ELSE -->{L_RANK}{L_COLON}<!-- ENDIF --></dt><dd>{RANK_IMG}</dd><!-- ENDIF -->
+					<dt>{L_JOINED}{L_COLON}</dt><dd>{JOINED}</dd>
+					<dt>{L_TOTAL_POSTS}{L_COLON}</dt><dd>{POSTS}</dd>
+					<dt>{L_WARNINGS}{L_COLON} </dt><dd>{WARNINGS}</dd>
+					<dt>{L_AKRUIJFF_PENALTY_CARDS}{L_COLON} </dt><dd>{CARDS}</dd>
+				</dl>
+			</div>
+		</div>
+
+		</div>
+	</div>
+
+	<div class="panel">
+		<div class="inner">
+
+		<h3>{L_POST_DETAILS}</h3>
+		<div class="postbody">
+			<div class="content">
+				{POST}
+			</div>
+		</div>
+
+		</div>
+	</div>
+
+	<div class="panel">
+		<div class="inner">
+
+		<h3>{L_MCP_AKRUIJFF_PENALTY_CARDS_DETAILS}</h3>
+		<fieldset>
+			<dl>
+				<dt><label for="card-type">{L_AKRUIJFF_PENALTY_CARDS_TYPE}{L_COLON}</label></dt>
+				<dd>
+					<input name="card-type" type="radio" id="yellow-card" value="{YELLOW_CARD}" <!-- IF CARD_TYPE == YELLOW_CARD -->checked<!-- ENDIF -->/>
+					<label for="yellow-card">{L_MCP_AKRUIJFF_PENALTY_CARDS_YELLOW_CARD}</label>
+
+					<input name="card-type" type="radio" id="red-red" value="{RED_CARD}" <!-- IF CARD_TYPE == RED_CARD -->checked<!-- ENDIF -->/>
+					<label for="red-card">{L_MCP_AKRUIJFF_PENALTY_CARDS_RED_CARD}</label>
+				</dd>
+
+				<dt><label for="duration">{L_AKRUIJFF_PENALTY_CARDS_DURATION}{L_COLON}</label></dt>
+				<dd>
+					<input name="duration" type="radio" id="duration1" value="{DURATION1}" <!-- IF DURATION == DURATION1 -->checked<!-- ENDIF -->/>
+					<label for="duration1">{DURATION1} {L_DAYS}</label>
+
+					<input name="duration" type="radio" id="duration2" value="{DURATION2}" <!-- IF DURATION == DURATION2 -->checked<!-- ENDIF -->/>
+					<label for="duration2">{DURATION2} {L_DAYS}</label>
+
+					<input name="duration" type="radio" id="duration3" value="{DURATION3}" <!-- IF DURATION == DURATION3 -->checked<!-- ENDIF -->/>
+					<label for="duration3">{DURATION3} {L_DAYS}</label>
+
+					<input name="duration" type="radio" id="duration_permanent" value="{DURATION_PERMANENT}" <!-- IF DURATION == DURATION_PERMANENT -->checked<!-- ENDIF -->/>
+					<label for="permanent">{DURATION_PERMANENT}</label>
+
+					<input name="duration" type="radio" id="duration_other" value="{DURATION_OTHER}" <!-- IF DURATION != DURATION1 && DURATION != DURATION2 && DURATION != DURATION3 && DURATION != DURATION_PERMANENT && DURATION != ''-->checked<!-- ENDIF -->/>
+					<input name="duration_specification" type="text" for="duration_other" size="3" onclick="document.getElementById('duration_other').checked = true;" <!-- IF DURATION != DURATION1 && DURATION != DURATION2 && DURATION != DURATION3 && DURATION != DURATION_PERMANENT -->value="{DURATION}"<!-- ENDIF -->/>
+					<label for="duration_other">{L_DAYS}</label>
+				</dd>
+			</dl>
+
+			<dl>
+				<dt><label for="reason">{L_AKRUIJFF_PENALTY_CARDS_REASON}{L_COLON}</label></dt>
+				<dd><textarea name="reason" type="textarea" class="inputbox">{REASON}</textarea></dd>
+			</dl>
+
+			<dl>
+				<dt><label for="reason_shown">{L_AKRUIJFF_PENALTY_CARDS_REASON_SHOWN}{L_COLON}</label></dt>
+				<dd><textarea name="reason_shown" type="textarea" class="inputbox">{REASON_SHOWN}</textarea></dd>
+			</dl>
+		</fieldset>
+
+		</div>
+	</div>
+
+	<fieldset class="submit-buttons">
+		<input type="reset" name="reset" value="{L_RESET}" class="button2" />&nbsp;
+		<input type="submit" name="submit" value="{L_SUBMIT}" class="button1" />
+		{S_FORM_TOKEN}
+	</fieldset>
+</form>
+
+<!-- INCLUDE mcp_footer.html -->

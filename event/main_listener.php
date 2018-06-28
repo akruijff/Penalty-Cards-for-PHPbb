@@ -26,43 +26,24 @@ class main_listener implements EventSubscriberInterface {
 	static public function getSubscribedEvents() {
 		return array(
 			'core.user_setup' => 'load_language_on_setup',
-			'core.page_header' => 'page_header',
 			'core.viewtopic_get_post_data' => 'viewtopic_get_post_data',
 			'core.viewtopic_post_rowset_data' => 'viewtopic_post_rowset_data',
 			'core.viewtopic_modify_post_row' => 'viewtopic_modify_post_row',
 			'core.viewtopic_modify_page_title' => 'viewtopic_modify_page_title', // can break
-			'core.viewtopic_page_header_before' => 'viewtopic_modify_page_title', // does not jet exists
+#			'core.viewtopic_page_header_before' => 'viewtopic_modify_page_title', // does not jet exists
+			'core.viewtopic_post_row_after' => 'viewtopic_post_row_after',
 		);
 	}
 
 	private $cards;
-	private $arr = array();
-
-	/** @var \phpbb\auth\auth */
-	protected $auth;
+	private $user_cards = array();
+	private $post_row = array();
 
 	/* @var \phpbb\controller\helper */
 	protected $helper;
 
-	/* @var \phpbb\template\template */
-	protected $template;
-
-	/* @var \phpbb\user */
-	protected $user;
-
-	/** @var string phpEx */
-	protected $phpEx;
-
-	public function __construct(
-			\phpbb\auth\auth $auth,
-			\phpbb\controller\helper $helper,
-			\phpbb\template\template $template,
-			\phpbb\user $user, $phpEx) {
-		$this->auth = $auth;
+	public function __construct(\phpbb\controller\helper $helper) {
 		$this->helper = $helper;
-		$this->template = $template;
-		$this->user = $user;
-		$this->phpEx = $phpEx;
 	}
 
 	/**
@@ -79,18 +60,13 @@ class main_listener implements EventSubscriberInterface {
 		$event['lang_set_ext'] = $lang_set_ext;
 	}
 
-	public function page_header($event) {
-		global $template, $phpbb_root_path;
-		$template->assign_var('U_AKRUIJFF_PENALTY_CARDS_INDEX', generate_board_url() . '/app.php/akruijff/penalty_cards');
-	}
-
 	public function viewtopic_get_post_data($event) {
-		$this->cards = fetch_post_rows($event['post_list']);
 		$event['sql_ary'] = $this->add_card_data($event['sql_ary']);
+		$this->user_cards = $this->fetch_user_cards($event['post_list']);
 	}
 
 	private function add_card_data($sql) {
-		$sql['SELECT'] = $sql['SELECT'] . ', c.*';
+		$sql['SELECT'] = $sql['SELECT'] . ', c.*, c.card_id, c.card_start, c.card_end, c.card_reason, c.card_reason_shown';
 
 		$join = $sql['LEFT_JOIN'];
 		array_push($join, array(
@@ -101,10 +77,47 @@ class main_listener implements EventSubscriberInterface {
 		return $sql;
 	}
 
+	private function fetch_user_cards($post_list) {
+		global $db;
+		$sql = 'SELECT c.card_id, c.card_ban_id, c.card_post_id, c.card_user_id
+			FROM ' . PENALTY_CARDS_TABLE . ' c
+			WHERE (c.card_end = 0 OR c.card_start < ' . time() . ' AND ' . time() . ' < c.card_end)
+				AND c.card_user_id IN (
+					SELECT DISTINCT p.poster_id
+					FROM ' . POSTS_TABLE . ' p
+					WHERE p.post_id IN (' . array_to_string($post_list) . ')
+				)';
+		$result = $db->sql_query($sql);
+		$arr = $this->build_user_cards_array($result);
+		$db->sql_freeresult($result);
+		return $arr;
+	}
+
+	private function build_user_cards_array($result) {
+		global $db;
+		$arr = array();
+		while($row = $db->sql_fetchrow($result)) {
+			$user_id = $row['card_user_id'];
+			$post_id = $row['card_post_id'];
+			$card_id = $row['card_id'];
+			$ban_id = $row['card_ban_id'];
+			if (empty($arr[$user_id]))
+				$arr[$user_id] = array();
+			$card_type = empty($ban_id) ? 'yellow' : 'red';
+			if (empty($arr[$user_id][$card_type]))
+				$arr[$user_id][$card_type] = array();
+			if (empty($arr[$user_id][$card_type][$card_id]))
+				$arr[$user_id][$card_type][$card_id] = array();
+			$arr[$user_id][$card_type][$card_id] = $post_id;
+		}
+		return $arr;
+	}
+
 	public function viewtopic_post_rowset_data($event) {
-		$this->add_card_buttons($event['row']);
-		if (!empty($event['row']['card_id']))
-			$this->add_card_message($event['row']);
+		$row = $event['row'];
+		$this->add_card_buttons($row);
+		if (!empty($row['card_id']))
+			$this->add_card_message($row);
 	}
 
 	private function add_card_buttons($row) {
@@ -114,7 +127,7 @@ class main_listener implements EventSubscriberInterface {
 		$base_url = "{$phpbb_root_path}mcp.$this->phpEx";
 		$base_arg = 'i=' . MCP_ID . '&amp;mode=create&amp;p=' . $row['post_id'] . '&amp;type=';
 		$count = empty($this->cards[$user_id]) ? 0 : $this->cards[$user_id]['cards'];
-		$this->arr[$post_id] = array(
+		$this->post_row[$post_id] = array(
 			'U_YELLOW_CARD' => can_issue_yellow($row, $count)
 				? append_sid($base_url, $base_arg . 'yellow', true, $user->session_id)
 				: '',
@@ -122,14 +135,13 @@ class main_listener implements EventSubscriberInterface {
 				? append_sid($base_url, $base_arg . 'red', true, $user->session_id)
 				: '',
 		);
-
 	}
 
 	private function add_card_message($row) {
 		global $user;
 		$post_id = $row['post_id'];
-		$this->arr[$post_id] = array_merge($this->arr[$post_id], array(
-			'CARD_MESSAGE' => $user->lang('CARD_ISSUED',
+		$this->post_row[$post_id] = array_merge($this->post_row[$post_id], array(
+			'CARD_MESSAGE' => $user->lang('AKRUIJFF_PENALTY_CARDS_ISSUED',
 				($row['card_end'] - $row['card_start']) / DAY,
 				$user->format_date($row['card_start']),
 				$user->format_date($row['card_end']),
@@ -155,11 +167,31 @@ class main_listener implements EventSubscriberInterface {
 
 	private function publish_post_row($event) {
 		$post_id = $event['row']['post_id'];
-		$event['post_row'] = array_merge($event['post_row'], $this->arr[$post_id]);
+		$event['post_row'] = array_merge($event['post_row'], $this->post_row[$post_id]);
+	}
+
+	public function viewtopic_post_row_after($event) {
+		$this->assign_cards($event);
+	}
+
+	private function assign_cards($event) {
+		$cards = $this->user_cards[$event['row']['user_id']];
+		$this->assign_cards_helper($cards, 'yellow');
+		$this->assign_cards_helper($cards, 'red');
+	}
+
+	private function assign_cards_helper($cards, $card_type) {
+		global $template, $phpbb_root_path, $phpEx;
+		if (empty($cards[$card_type]))
+			return;
+		foreach($cards[$card_type] as $card_id => $post_id)
+			$template->assign_block_vars('postrow.akruijff_penalty_cards_' . $card_type, array(
+				'U_AKRUIJFF_PENALTY_CARDS_CARD' => "${phpbb_root_path}viewtopic.$phpEx?p=$post_id#p$post_id",
+			));
 	}
 
 	public function viewtopic_modify_page_title($event) {
-		unset($this->arr);
+		unset($this->post_row);
 		unset($this->cards);
 	}
 }
