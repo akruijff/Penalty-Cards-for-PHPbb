@@ -8,4 +8,4 @@ Go to "ACP" > "Customise" > "Extensions" and enable the "Penalty Cards" extensio
 
 ## License
 
-[GPLv2](license.txt)
+[BSD License](license.txt)
